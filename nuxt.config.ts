@@ -14,11 +14,12 @@ export default defineNuxtConfig({
   //   }
   // },
   devtools: { enabled: true },
-  css : ["./app/assets/css/global.css"], 
-  vite : {
-    plugins : [
+  css: ["./app/assets/css/global.css"],
+  vite: {
+    plugins: [
       tailwindcss()
-    ], 
-  }, 
-  modules : ["@nuxt/ui"]
+    ],
+  },
+  modules: ["@nuxt/ui", '@nuxt/test-utils/module',
+  ]
 })
