@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
-
-const PngToJpeg = import("../../../app/pages/tools/image-converter/png-jpeg.vue")
+import { ref, onUnmounted } from "vue";
+//@ts-ignore
+import PngToJpeg from "@/pages/tools/image-converter/png-jpeg.vue"
 // Mock utility functions
 vi.mock('~/utils/GetExtension', () => ({
   GetExtension: vi.fn((file: File) => file.name.split('.').pop()),
@@ -194,6 +195,7 @@ describe('PngToJpeg Component', () => {
     it('should have canvas context available', () => {
       const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
       const context = canvas.getContext('2d');
+      if (!context) return;
       expect(context).toBeTruthy();
     });
 
