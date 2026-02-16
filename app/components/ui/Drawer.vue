@@ -12,12 +12,13 @@ const open = ref(false)
             <UButton label="Open" color="neutral" variant="subtle" size="xl" trailing-icon="i-lucide-chevron-right" />
         </div>
         <template #content>
-            <Placeholder class="min-w-96 min-h-96 size-full m-4" />
-            <UAside class="flex flex-col w-full">
-                <ULink to="/tools/image-converter">image-converter</ULink>
-                <ULink to="/tools/pdf-merge">PDF Merge</ULink>
-                <ULink to="/tools/convert">File Convert</ULink>
-            </UAside>
+            <Placeholder class="min-w-96 min-h-96 size-full m-4 ">
+                <UAside class="flex flex-col w-full">
+                    <ULink class="font-semibold text-xl" to="/tools/image-converter">image-converter</ULink>
+                    <ULink class="font-semibold text-xl" to="/tools/file-manager">file manager</ULink>
+                    <ULink class="font-semibold text-xl" to="/tools/convert">File Convert</ULink>
+                </UAside>
+            </Placeholder>
 
         </template>
     </UDrawer>

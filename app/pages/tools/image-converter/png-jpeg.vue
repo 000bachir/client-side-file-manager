@@ -1,85 +1,105 @@
 <!--!PNG TO JPEG-->
-<script setup lang="ts">
-import { GetExtension, IsImage } from "~/utils/GetExtension";
-import { formatFileSize } from "~/utils/formatFileSize";
-import { ref, onUnmounted } from "vue";
 
+<!--TODO : need to add loading bar after and some tests need to be fixed-->
+
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { validateMessage } from '~/utils/validateMessage';
+/**
+ * !state
+ */
 const inputElement = ref<HTMLInputElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
-const downloadLink = ref<HTMLAnchorElement | null>(null);
-const canvasContext = canvas.value?.getContext("2d");
 
-defineExpose({
-  downloadLink
-})
-inputElement.value?.addEventListener("change", onFileUpload)
-
-function validationMessage(message: string) {
-  return alert(message)
-};
+const downloadUrl = ref<string | null>(null);
+const filename = ref<string>("image-converted.jpeg")
 
 
+
+//load the image 
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const image = new Image();
-    const objectUrl: string = URL.createObjectURL(file);
+    let image = new Image();
+    let objectUrl = URL.createObjectURL(file)
+
     image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(objectUrl)
       resolve(image)
-
     }
-
     image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(
-        new Error("failed to load image , ensure it a png file\n")
-      )
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error("failed to load the image properly\n"))
     }
+
     image.src = objectUrl;
+
   })
 }
 
-function convertCanvasToJpeg(canvas : HTMLCanvasElement) {
-  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-  if (downloadLink.value) {
-    downloadLink.value.href = jpegDataUrl ?? ''
-    downloadLink.value.download = 'image.jpg'
-    downloadLink.value.click()
-    downloadLink.value.style = "flex"
-  }
+function convertCanvasToJpegImage(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resovle, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("jpeg conversion failed\n"))
+        return
+      }
+      resovle(blob)
+    }, "image/jpeg", 0.9)
+  })
 }
 
 
 
 async function onFileUpload() {
-  const files = inputElement.value?.files
-  if (!files) return;
-  const file = files[0];
+  const fileInput = inputElement.value?.files;
+  if (!fileInput) return;
+  let file = fileInput[0]
   if (!file) return;
-  console.log(`file name : ${file.name} it's size ${formatFileSize(file.size)} and it's extension : ${GetExtension(file)}`);
-  console.log(IsImage(file))
-  if (!IsImage(file)) {
-    validationMessage("ALERT , please choose a valid png file\n")
+
+
+  // image validation
+  if (file.type !== "image/png") {
+    validateMessage("please select a valid png image\n")
+    return;
   }
 
   try {
-    const image = await loadImage(file);
-    if (!image) return;
-    let cnvs = canvas.value;
-    if (!cnvs) return;
-    cnvs.width = image.naturalWidth;
-    cnvs.height = image.naturalHeight;
-    if (!canvasContext) return;
-    canvasContext.fillStyle = 'white';
-    canvasContext.fillRect(0, 0, cnvs.width, cnvs.height);
-    canvasContext.drawImage(image, 0, 0);
+    const image = await loadImage(file)
+    const Canvas = canvas.value
+    if (!Canvas) return;
 
-    convertCanvasToJpeg(cnvs)
+    let context = Canvas.getContext("2d");
+    if (!context) return;
+
+
+    Canvas.width = image.naturalWidth;
+    Canvas.height = image.naturalHeight;
+
+    //white backgroud for transparency 
+
+    context.fillStyle = "fffff";
+    context.fillRect(0, 0, Canvas.width, Canvas.height);
+    context.drawImage(image, 0, 0);
+
+    const jpegBlob = await convertCanvasToJpegImage(Canvas);
+
+
+    if (downloadUrl.value) {
+      URL.revokeObjectURL(downloadUrl.value)
+    }
+    downloadUrl.value = URL.createObjectURL(jpegBlob)
+    filename.value = file.name.replace(/\.png$/i, ".jpeg")
+
+
+  } catch (err) {
+    console.error("error the file upload did not proceede correctly\n")
+    validateMessage("conversion failed")
   }
-  catch (error) {
-    throw new Error(`error could not load image properly : ${error}`)
-  }
+
 }
+
+
 </script>
 
 <template>
@@ -90,8 +110,11 @@ async function onFileUpload() {
           <input ref="inputElement" type="file" accept="image/*"
             class="border border-amber-50 p-8 rounded-3xl shadow-2xl" @change="onFileUpload">
           <canvas class="hidden" ref="canvas"></canvas>
-          <a id="downloadLink" ref="downloadLink" class="hidden text-amber-300">Download JPEG</a>
-
+          <!-- <a id="downloadLink" ref="downloadLink" class="hidden text-amber-300">Download JPEG</a> -->
+          <UButton v-if="downloadUrl" :to="downloadUrl" :download="filename" variant="outline" color="success" size="xl"
+            icon="i-lucide-rocket" class="flex items-center justify-center">
+            Download JPEG
+          </UButton>
         </form>
       </div>
       <div id="text_col" class=""></div>
@@ -103,4 +126,5 @@ async function onFileUpload() {
 input[type="file"]::file-selector-button {
   content: none;
 }
+
 </style>

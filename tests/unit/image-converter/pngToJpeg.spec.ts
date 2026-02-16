@@ -1,281 +1,568 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import PngToJpeg from "@/pages/tools/image-converter/png-jpeg.vue"
 import { mount, VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { ref, onUnmounted } from "vue";
-//@ts-ignore
-import PngToJpeg from "@/pages/tools/image-converter/png-jpeg.vue"
-// Mock utility functions
-vi.mock('~/utils/GetExtension', () => ({
-  GetExtension: vi.fn((file: File) => file.name.split('.').pop()),
-  IsImage: vi.fn((file: File) => file.type.startsWith('image/')),
-}));
 
-vi.mock('../../../app/utils/formatFileSize.ts', () => ({
-  formatFileSize: vi.fn((size: number) => `${(size / 1024).toFixed(2)} KB`),
-}));
+// Mock URL.createObjectURL and URL.revokeObjectURL
+global.URL.createObjectURL = vi.fn(() => 'mock-object-url');
+global.URL.revokeObjectURL = vi.fn();
 
-describe('PngToJpeg Component', () => {
-  let wrapper: VueWrapper<any>;
-  let mockFile: File;
-  let mockImage: HTMLImageElement;
-  let createObjectURLSpy: any;
-  let revokeObjectURLSpy: any;
+// Mock alert
+global.alert = vi.fn();
+
+describe('pngtoJpeg Component', () => {
+  let wrapper: any;
 
   beforeEach(() => {
-    // Setup DOM mocks
-    createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
-    revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => { });
-
-    // Mock alert
-    global.alert = vi.fn();
-
-    // Create mock file
-    mockFile = new File(['mock-image-content'], 'test-image.png', { type: 'image/png' });
-
-    // Mount component
-    wrapper = mount(PngToJpeg);
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    wrapper.unmount();
-    vi.clearAllMocks();
+    if (wrapper) {
+      wrapper.unmount();
+    }
   });
 
   describe('Component Rendering', () => {
     it('should render the component correctly', () => {
+      wrapper = mount(PngToJpeg);
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('input[type="file"]').exists()).toBe(true);
-      expect(wrapper.find('canvas').exists()).toBe(true);
-      expect(wrapper.find('a#downloadLink').exists()).toBe(true);
     });
 
-    it('should have hidden canvas element', () => {
+    it('should render file input with correct attributes', () => {
+      wrapper = mount(PngToJpeg);
+      const fileInput = wrapper.find('input[type="file"]');
+
+      expect(fileInput.exists()).toBe(true);
+      expect(fileInput.attributes('accept')).toBe('image/*');
+    });
+
+    it('should render canvas element with hidden class', () => {
+      wrapper = mount(PngToJpeg);
       const canvas = wrapper.find('canvas');
+
+      expect(canvas.exists()).toBe(true);
       expect(canvas.classes()).toContain('hidden');
     });
 
-    it('should have hidden download link', () => {
-      const downloadLink = wrapper.find('a#downloadLink');
-      expect(downloadLink.attributes('style')).toContain('display: none');
-    });
+    it('should not show download button initially', () => {
+      wrapper = mount(PngToJpeg);
+      const downloadButton = wrapper.find('[download]');
 
-    it('should accept image files only', () => {
-      const input = wrapper.find('input[type="file"]');
-      expect(input.attributes('accept')).toBe('image/*');
+      expect(downloadButton.exists()).toBe(false);
     });
   });
 
-  describe('File Upload Handling', () => {
-    it('should handle file input change event', async () => {
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
+  describe('validateMessage function', () => {
+    it('should call alert with the provided message', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
 
-      // Mock FileList
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
+      vm.validateMessage('Test message');
 
-      await wrapper.find('input[type="file"]').trigger('change');
-      await nextTick();
-
-      // Verify file was processed
-      expect(createObjectURLSpy).toHaveBeenCalled();
-    });
-
-    it('should return early if no files are selected', async () => {
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-
-      Object.defineProperty(input, 'files', {
-        value: null,
-        writable: false,
-      });
-
-      await wrapper.find('input[type="file"]').trigger('change');
-      await nextTick();
-
-      expect(createObjectURLSpy).not.toHaveBeenCalled();
-    });
-
-    it('should return early if files array is empty', async () => {
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-
-      Object.defineProperty(input, 'files', {
-        value: [],
-        writable: false,
-      });
-
-      await wrapper.find('input[type="file"]').trigger('change');
-      await nextTick();
-
-      expect(createObjectURLSpy).not.toHaveBeenCalled();
+      expect(global.alert).toHaveBeenCalledWith('Test message');
     });
   });
 
-  describe('Image Validation', () => {
-    it('should show alert for non-image files', async () => {
-      const { IsImage } = await import('../../../app/utils/GetExtension');
-      vi.mocked(IsImage).mockReturnValue(false);
 
-      const nonImageFile = new File(['content'], 'test.txt', { type: 'text/plain' });
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
+  //! load the image tests
 
-      Object.defineProperty(input, 'files', {
-        value: [nonImageFile],
-        writable: false,
-      });
+  describe('loadImage function', () => {
+    it('should successfully load an image', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+        naturalWidth: 100,
+        naturalHeight: 100,
+      };
+      // at top of describe or in beforeEach
+      vi.stubGlobal('Image', vi.fn().mockImplementation(function (this: any) {
+        let _src = ""; //backing field
+        const img: any = {
+          src: '',
+          naturalWidth: 100,
+          naturalHeight: 100,
+        };
 
-      await wrapper.find('input[type="file"]').trigger('change');
-      await nextTick();
+        Object.defineProperty(img, 'src', {
+          get() {
+            return _src
+          },
+          set(val: string) {
+            _src = val;
+            // simulate immediate success (most common pattern)
+            queueMicrotask(() => img.onload?.());
+          }
+        });
 
-      expect(global.alert).toHaveBeenCalledWith('ALERT , please choose a valid png file\n');
+        return img;
+      }));
+
+      const loadPromise = vm.loadImage(mockFile);
+
+      // Trigger onload
+      setTimeout(() => {
+        if (mockImage.onload) mockImage.onload();
+      }, 0);
+
+      const result = await loadPromise;
+
+      expect(result.naturalWidth).toBe(100);
+      expect(result.naturalHeight).toBe(100);
+      expect(result.src).toBe('mock-object-url');
+
+      expect(global.URL.revokeObjectURL).toHaveBeenCalled();
     });
 
-    it('should process valid image files', async () => {
-      const { IsImage } = await import('../../../app/utils/GetExtension');
-      vi.mocked(IsImage).mockReturnValue(true);
+    it('should reject when image fails to load', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
 
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+      };
 
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
+      vi.stubGlobal(
+        'Image',
+        vi.fn().mockImplementation(function () {
+          let _src = '';
 
-      await wrapper.find('input[type="file"]').trigger('change');
+          const img: any = {
+            naturalWidth: 100,
+            naturalHeight: 100,
+            onload: null,
+            onerror: null,
+          };
 
-      expect(createObjectURLSpy).toHaveBeenCalledWith(mockFile);
+          Object.defineProperty(img, 'src', {
+            get() {
+              return _src;
+            },
+            set(val: string) {
+              _src = val;
+
+              // simulate async image load success
+              queueMicrotask(() => {
+                img.onerror?.();
+              });
+            },
+          });
+
+          return img;
+        })
+      );
+      const loadPromise = vm.loadImage(mockFile);
+      // Trigger onerror
+      setTimeout(() => {
+        if (mockImage.onerror) mockImage.onerror();
+      }, 0);
+
+      await expect(loadPromise).rejects.toThrow('failed to load the image properly\n');
+      expect(global.URL.revokeObjectURL).toHaveBeenCalled();
     });
   });
 
-  describe('Image Loading', () => {
-    it('should create object URL for image loading', async () => {
-      const { IsImage } = await import('../../../app/utils/GetExtension');
-      vi.mocked(IsImage).mockReturnValue(true);
+  //! convert canvas to jpeg image
 
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
+  describe('convertCanvasToJpegImage function', () => {
+    it('should successfully convert canvas to JPEG blob', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
 
-      await wrapper.find('input[type="file"]').trigger('change');
-
-      expect(createObjectURLSpy).toHaveBeenCalledWith(mockFile);
-    });
-
-    it('should revoke object URL after image loads', async () => {
-      const { IsImage } = await import('../../../app/utils/GetExtension');
-      vi.mocked(IsImage).mockReturnValue(true);
-
-      // Mock Image constructor to auto-trigger onload
-      const mockOnLoad = vi.fn();
-      global.Image = class extends Image {
-        constructor() {
-          super();
-          setTimeout(() => {
-            if (this.onload) this.onload(new Event('load'));
-          }, 0);
-        }
+      const mockBlob = new Blob(['test'], { type: 'image/jpeg' });
+      const mockCanvas = {
+        toBlob: vi.fn((callback) => callback(mockBlob)),
       } as any;
 
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
+      const result = await vm.convertCanvasToJpegImage(mockCanvas);
 
-      await wrapper.find('input[type="file"]').trigger('change');
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      expect(revokeObjectURLSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Canvas Operations', () => {
-    it('should have canvas context available', () => {
-      const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
-      const context = canvas.getContext('2d');
-      if (!context) return;
-      expect(context).toBeTruthy();
+      expect(result).toBe(mockBlob);
+      expect(mockCanvas.toBlob).toHaveBeenCalledWith(
+        expect.any(Function),
+        'image/jpeg',
+        0.9
+      );
     });
 
-    it('should expose downloadLink ref', () => {
-      expect(wrapper.vm.downloadLink).toBeDefined();
-    });
-  });
+    it('should reject when blob conversion fails', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
 
-  describe('JPEG Conversion', () => {
-    it('should create JPEG data URL from canvas', async () => {
-      const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
-      const mockDataURL = 'data:image/jpeg;base64,mock-data';
-
-      vi.spyOn(canvas, 'toDataURL').mockReturnValue(mockDataURL);
-
-      const downloadLink = wrapper.find('a#downloadLink').element as HTMLAnchorElement;
-      const clickSpy = vi.spyOn(downloadLink, 'click').mockImplementation(() => { });
-
-      // Manually trigger conversion (would normally happen after image load)
-      wrapper.vm.convertCanvasToJpeg();
-
-      expect(canvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.9);
-      expect(downloadLink.href).toBe(mockDataURL);
-      expect(downloadLink.download).toBe('image.jpg');
-      expect(clickSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle image load errors', async () => {
-      const { IsImage } = await import('../../../app/utils/GetExtension');
-      vi.mocked(IsImage).mockReturnValue(true);
-
-      // Mock Image to trigger onerror
-      global.Image = class extends Image {
-        constructor() {
-          super();
-          setTimeout(() => {
-            if (this.onerror) this.onerror(new Event('error'));
-          }, 0);
-        }
+      const mockCanvas = {
+        toBlob: vi.fn((callback) => callback(null)),
       } as any;
 
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
-      });
-
-      await wrapper.find('input[type="file"]').trigger('change');
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      expect(revokeObjectURLSpy).toHaveBeenCalled();
+      await expect(vm.convertCanvasToJpegImage(mockCanvas)).rejects.toThrow(
+        'jpeg conversion failed\n'
+      );
     });
   });
 
-  describe('File Information Logging', () => {
-    it('should log file information on upload', async () => {
-      const { IsImage, GetExtension } = await import('../../../app/utils/GetExtension');
-      const { formatFileSize } = await import('../../../app/utils/formatFileSize');
+  describe('onFileUpload function', () => {
+    it('should return early if no input element', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
 
-      vi.mocked(IsImage).mockReturnValue(true);
-      vi.mocked(GetExtension).mockReturnValue('png');
-      vi.mocked(formatFileSize).mockReturnValue('10.00 KB');
+      vm.inputElement = null;
+      await vm.onFileUpload();
 
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+      expect(global.alert).not.toHaveBeenCalled();
+    });
 
-      const input = wrapper.find('input[type="file"]').element as HTMLInputElement;
-      Object.defineProperty(input, 'files', {
-        value: [mockFile],
-        writable: false,
+    it('should return early if no file selected', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      vm.inputElement = { files: [] };
+      await vm.onFileUpload();
+
+      expect(global.alert).not.toHaveBeenCalled();
+    });
+
+    it('should validate that file is PNG', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
+      vm.inputElement = { files: [mockFile] };
+
+      await vm.onFileUpload();
+
+      expect(global.alert).toHaveBeenCalledWith('please select a valid png image\n');
+    });
+
+    it('should process valid PNG file successfully', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+      const mockBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+
+      const mockContext = {
+        fillStyle: '',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      };
+
+      const mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => mockContext),
+        toBlob: vi.fn((callback) => callback(mockBlob)),
+      };
+      let createdImage: any
+
+      vi.stubGlobal(
+        'Image',
+        vi.fn().mockImplementation(function () {
+          let _src = '';
+          createdImage = {
+            naturalWidth: 200,
+            naturalHeight: 150,
+            onload: null,
+            onerror: null,
+          };
+
+          Object.defineProperty(createdImage, 'src', {
+            get() {
+              return _src;
+            },
+            set(val: string) {
+              _src = val;
+
+              // simulate async image load success
+              queueMicrotask(() => {
+                createdImage.onload?.();
+              });
+            },
+          });
+
+          return createdImage;
+        })
+      );
+
+      vm.inputElement = { files: [mockFile] };
+      vm.canvas = mockCanvas;
+
+      const uploadPromise = vm.onFileUpload();
+
+      // Trigger image onload
+      setTimeout(() => {
+        if (createdImage.onload) createdImage.onload();
+      }, 0);
+
+      await uploadPromise;
+
+      expect(mockCanvas.width).toBe(200);
+      expect(mockCanvas.height).toBe(150);
+      expect(mockContext.fillRect).toHaveBeenCalledWith(0, 0, 200, 150);
+      expect(mockContext.drawImage).toHaveBeenCalledWith(createdImage, 0, 0);
+      expect(vm.downloadUrl).toBe('mock-object-url');
+      expect(vm.filename).toBe('test.jpeg');
+    });
+
+    it('should handle conversion errors gracefully', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+      };
+
+      global.Image = vi.fn().mockImplementation(() => mockImage) as any;
+
+      vm.inputElement = { files: [mockFile] };
+
+      const uploadPromise = vm.onFileUpload();
+
+      // Trigger image onerror
+      setTimeout(() => {
+        if (mockImage.onerror) mockImage.onerror();
+      }, 0);
+
+      await uploadPromise;
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'error the file upload did not proceede correctly\n'
+      );
+      expect(global.alert).toHaveBeenCalledWith('conversion failed');
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should revoke old download URL before creating new one', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+      const mockBlob = new Blob(['test'], { type: 'image/jpeg' });
+      let createdImage : any
+      vi.stubGlobal(
+        'Image',
+        vi.fn().mockImplementation(function () {
+          let _src = '';
+          createdImage = {
+            naturalWidth: 200,
+            naturalHeight: 150,
+            onload: null,
+            onerror: null,
+          };
+
+          Object.defineProperty(createdImage, 'src', {
+            get() {
+              return _src;
+            },
+            set(val: string) {
+              _src = val;
+
+              // simulate async image load success
+              queueMicrotask(() => {
+                createdImage.onload?.();
+              });
+            },
+          });
+
+          return createdImage;
+        })
+      );
+      const mockContext = {
+        fillStyle: '',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      };
+
+      const mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => mockContext),
+        toBlob: vi.fn((callback) => callback(mockBlob)),
+      };
+      vm.inputElement = { files: [mockFile] };
+      vm.canvas = mockCanvas;
+      vm.downloadUrl = 'old-url';
+
+      const uploadPromise = vm.onFileUpload();
+
+
+      await uploadPromise;
+
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('old-url');
+    });
+
+    it('should handle case when canvas context is null', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'test.png', { type: 'image/png' });
+
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+        naturalWidth: 200,
+        naturalHeight: 150,
+      };
+
+      const mockCanvas = {
+        getContext: vi.fn(() => null),
+      };
+
+      global.Image = vi.fn().mockImplementation(() => mockImage) as any;
+
+      vm.inputElement = { files: [mockFile] };
+      vm.canvas = mockCanvas;
+
+      const uploadPromise = vm.onFileUpload();
+
+      setTimeout(() => {
+        if (mockImage.onload) mockImage.onload();
+      }, 0);
+
+      await uploadPromise;
+
+      expect(vm.downloadUrl).toBeNull();
+    });
+  });
+
+  describe('File input change event', () => {
+    it('should trigger onFileUpload when file is selected', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+      const onFileUploadSpy = vi.spyOn(vm, 'onFileUpload');
+
+      const fileInput = wrapper.find('input[type="file"]');
+      await fileInput.trigger('change');
+
+      expect(onFileUploadSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Download button', () => {
+    it('should show download button when downloadUrl is set', async () => {
+      wrapper = mount(PngToJpeg, {
+        global: {
+          stubs: {
+            UButton: {
+              template: '<a :href="to" :download="download"><slot /></a>',
+              props: ['to', 'download', 'variant', 'color', 'size', 'icon']
+            }
+          }
+        }
       });
 
-      await wrapper.find('input[type="file"]').trigger('change');
+      const vm = wrapper.vm as any;
+      vm.downloadUrl = 'mock-download-url';
+      vm.filename = 'test.jpeg';
 
-      expect(consoleSpy).toHaveBeenCalled();
-      expect(GetExtension).toHaveBeenCalledWith(mockFile);
-      expect(formatFileSize).toHaveBeenCalledWith(mockFile.size);
+      await wrapper.vm.$nextTick();
 
-      consoleSpy.mockRestore();
+      const downloadButton = wrapper.find('a[download]');
+      expect(downloadButton.exists()).toBe(true);
+      expect(downloadButton.attributes('href')).toBe('mock-download-url');
+      expect(downloadButton.attributes('download')).toBe('test.jpeg');
+    });
+  });
+
+  describe('Filename conversion', () => {
+    it('should replace .png extension with .jpeg (lowercase)', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'myimage.png', { type: 'image/png' });
+      const mockBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+        naturalWidth: 100,
+        naturalHeight: 100,
+      };
+
+      const mockContext = {
+        fillStyle: '',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      };
+
+      const mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => mockContext),
+        toBlob: vi.fn((callback) => callback(mockBlob)),
+      };
+
+      global.Image = vi.fn().mockImplementation(() => mockImage) as any;
+
+      vm.inputElement = { files: [mockFile] };
+      vm.canvas = mockCanvas;
+
+      const uploadPromise = vm.onFileUpload();
+
+      setTimeout(() => {
+        if (mockImage.onload) mockImage.onload();
+      }, 0);
+
+      await uploadPromise;
+
+      expect(vm.filename).toBe('myimage.jpeg');
+    });
+
+    it('should replace .PNG extension with .jpeg (uppercase)', async () => {
+      wrapper = mount(PngToJpeg);
+      const vm = wrapper.vm as any;
+
+      const mockFile = new File([''], 'PHOTO.PNG', { type: 'image/png' });
+      const mockBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      const mockImage = {
+        onload: null as any,
+        onerror: null as any,
+        src: '',
+        naturalWidth: 100,
+        naturalHeight: 100,
+      };
+
+      const mockContext = {
+        fillStyle: '',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      };
+
+      const mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => mockContext),
+        toBlob: vi.fn((callback) => callback(mockBlob)),
+      };
+
+      global.Image = vi.fn().mockImplementation(() => mockImage) as any;
+
+      vm.inputElement = { files: [mockFile] };
+      vm.canvas = mockCanvas;
+
+      const uploadPromise = vm.onFileUpload();
+
+      setTimeout(() => {
+        if (mockImage.onload) mockImage.onload();
+      }, 0);
+
+      await uploadPromise;
+
+      expect(vm.filename).toBe('PHOTO.jpeg');
     });
   });
 });

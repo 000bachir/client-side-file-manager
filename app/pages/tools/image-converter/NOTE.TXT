@@ -1,0 +1,7 @@
+this is important there still a lot of bugs and things to add to the image converter tools 
+
+1- finish correcting the tests 
+2- fix the ui 
+3- add a drag and drop section 
+4- fix the issue where even if the user upload the wrong image the scripts keep on running
+5- add responsiveness

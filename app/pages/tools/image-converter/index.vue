@@ -1,21 +1,10 @@
-<!--
-    !JPEG to/from PNG, WebP ===> MOSTLY DONE NEED TO ADD THE PROGRESS BAR 
-    !PNG to/from WebP, GIF ===> NOT DONE YET
-    !GIF to/from WebP, PNG ===> NOT DONE YET
--->
-
 <script setup lang="ts">
 
 interface ImageOperations {
     id: string | any
     label: string
 }
-// const imageOperations: ImageOperations[] = [
-//     { id: "jpeg-png", label: "JPEG → PNG" },
-//     { id: "png-jpeg", label: "PNG → JPEG" },
-//     { id: "png-webp", label: "PNG → WebP" },
-//     { id: "jpeg-webp", label: "JPEG → WebP" }
-// ];
+
 
 const selectedOperation = ref<string | null>(null);
 interface ImageOperation {
