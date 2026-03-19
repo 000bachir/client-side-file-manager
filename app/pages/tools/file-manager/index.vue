@@ -10,8 +10,13 @@
         <div id="button-container"
             class="h[90%] w-[90%] mx-auto relative flex items-center justify-center gap-4 flex-wrap">
             <NuxtLink to="/tools/file-manager/add-water-mark">
-                <UButton color="success" size="xl">
-                    add water mark
+                <UButton color="success" size="xl" class="font-semibold text-2xl">
+                    add text water mark
+                </UButton>
+            </NuxtLink>
+            <NuxtLink to="/tools/file-manager/split-pdf-pages">
+                <UButton color="success" size="xl" class="font-semibold text-2xl">
+                    split pdf pages
                 </UButton>
             </NuxtLink>
 

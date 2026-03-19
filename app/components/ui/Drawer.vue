@@ -12,11 +12,12 @@ const open = ref(false)
             <UButton label="Open" color="neutral" variant="subtle" size="xl" trailing-icon="i-lucide-chevron-right" />
         </div>
         <template #content>
-            <Placeholder class="min-w-96 min-h-96 size-full m-4 ">
-                <UAside class="flex flex-col w-full">
+            <Placeholder class="min-w-56 min-h-96 size-full m-4 ">
+                <UAside class=" flex flex-col w-full h-full gap-6">
                     <ULink class="font-semibold text-xl" to="/tools/image-converter">image-converter</ULink>
                     <ULink class="font-semibold text-xl" to="/tools/file-manager">file manager</ULink>
-                    <ULink class="font-semibold text-xl" to="/tools/convert">File Convert</ULink>
+                    <ULink class="font-semibold text-xl" to="/tools/Image_resizing_scaling">Image_resizing&scaling</ULink>
+
                 </UAside>
             </Placeholder>
 
