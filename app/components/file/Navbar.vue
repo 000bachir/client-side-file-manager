@@ -9,7 +9,7 @@
         <div class=" h-full w-full col-span-2 flex items-center">
             <NuxtLink to="/" class="flex items-center justify-center gap-2 ">
                 <LogoWeb height="32" width="32" />
-                <h1 class="text-2xl font-semibold">Refine</h1>
+                <h1 class="text-2xl font-semibold">FileEngine</h1>
             </NuxtLink>
         </div>
         <div class="h-full w-full col-span-1 flex items-center justify-end ">

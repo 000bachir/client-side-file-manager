@@ -1,39 +1,53 @@
 <script setup lang="ts">
-  import Folders from '~/components/icons/Folders.vue';
+import Folders from '~/components/icons/Folders.vue';
+import Anonymous from '~/components/icons/Anonymous.vue';
+import Server from '~/components/icons/Server.vue';
 </script>
 
 <template>
   <main class="h-auto w-full relative overflow-hidden">
-    <section class="h-dvh w-full relative grid grid-cols-2">
-      <article class="h-full w-[95%] mx-auto col-span-1  flex flex-col">
-        <div class="h-full w-full relative overflow-hidden flex items-center justify-center">
-          <h1 class="font-semibold text-4xl underline">
-            File converter in the browser
+    <section class="h-dvh w-full relative overflow-hidden flex items-center justify-center">
+      <article
+        class="h-[90%] w-[95%] mx-auto rounded-2xl shadow-2xl border dark:border-gray-400 border-gray-900 flex items-center justify-center gap-6 flex-col">
+        <div class="w-full flex items-center justify-center" id="icon container">
+          <Anonymous width="200" height="200" />
+        </div>
+        <div class="w-full relative overflow-hidden flex items-center justify-center " id="big title">
+          <h1 class="font-semibold text-7xl">
+            When Speed Meets Anonymity
           </h1>
         </div>
-        <div class="h-full w-full relative overflow-hidden flex items-center justify-center">
-          <p class="px-6 text-center text-balance text-2xl">
-            this a simple tool that will help with certain task like: Image conversion , text based conversion and some
-            simple pdf formats
-            the upside of this app is that it is only client side no server nor data will be collected
+        <div class="w-full relative flex items-center justify-center" id="small paragraph">
+          <p class="text-xl font-semibold dark:text-gray-300 text-gray-600 text-center">
+            Drop any files here to start processing instantly. <br>
+            All computation happens on your device
           </p>
         </div>
-        <div class="h-full w-full relative overflow-hidden flex items-center justify-center">
-          <p class="px-6 text-center text-balance text-red-500 text-xl">
-            for complexe operation that will require a server action will not be supported by this tool
-            for privacy concern everything will be done in the browser so the limit will be around
-            <strong>200MB</strong> to <strong>300MB</strong>
-          </p>
+        <div class="w-full flex items-center justify-center" id="buttons">
+          <UButton icon="i-lucide-rocket" color="warning" variant="solid" label="PROCEED"
+            class="w-52 h-16 flex items-center justify-center font-semibold text-2xl" to="/tools" />
+        </div>
+        <div class="w-full flex items-center justify-center" id="buttons">
+          <p class="text-sm font-semibold dark:text-gray-300 text-gray-600 text-center">Privacy first , nothing leaves
+            your machine or your browser</p>
         </div>
       </article>
-      <article class="h-full w-[95%] mx-auto col-span-1 flex items-center justify-center">
-        <Folders height="360px" width="360px" />
-      </article>
     </section>
+    <section class="h-auto w-full relative overflow-hidden">
+      <div class="w-[95%] mx-auto grid grid-cols-3 py-4">
+        <div class="col-span-2 w-full relative overflow-hidden flex flex-col gap-6">
+          <h1 class="text-4xl font-semibold ">
+            Client side storage
+          </h1>
+          <p class="text-xl font-semibold">
+            Meaning , no server is gonna do the work , your browser is your tool
+          </p>
+        </div>
+        <div class="w-full flex items-center justify-center ">
+          <Server width="120px" height="120px" />
+        </div>
+      </div>
 
-    <section class="h-16 w-full relative flex items-center justify-center">
-        <UButton icon="i-lucide-rocket" color="warning" variant="solid" label="PROCEED" size="xl" to="/tools" />
     </section>
-
   </main>
 </template>

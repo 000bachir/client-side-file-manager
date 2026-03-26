@@ -8,6 +8,5 @@
       <Navbar />
     </header>
     <NuxtPage />
-    
   </NuxtLayout>
 </template>
