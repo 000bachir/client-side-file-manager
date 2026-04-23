@@ -1,7 +1,3 @@
-
-
-
-
 <script setup lang="ts">
 import { degrees, error, PDFDocument, PDFFont, rgb, StandardFonts } from 'pdf-lib';
 const fileInput = ref<HTMLInputElement | null>(null);

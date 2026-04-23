@@ -8,3 +8,12 @@ export function formatFileSize(bytes : number) : string | number{
     let index : number = Math.floor(Math.log(bytes)) / Math.log(kilo)
     return parseFloat((bytes / Math.pow(kilo , index)).toFixed(1)) + " " + sizes[index]
 }
+
+
+export function CheckFileSize(file : File){
+    if(!file)return ;
+
+    if(file.size){
+        return console.log(`file size is : ${file.size}`)
+    }
+}

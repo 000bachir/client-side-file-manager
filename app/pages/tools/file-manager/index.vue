@@ -20,6 +20,12 @@
                 </UButton>
             </NuxtLink>
 
+            <NuxtLink to="/tools/file-manager/PdfToOcrFile">
+                <UButton color="success" size="xl" class="font-semibold text-2xl">
+                    OCR pdfs
+                </UButton>
+            </NuxtLink>
+
             <!-- child operation renders here -->
             <NuxtPage />
         </div>

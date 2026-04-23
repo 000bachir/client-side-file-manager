@@ -35,7 +35,7 @@ import Server from '~/components/icons/Server.vue';
     </section>
     <section class="h-auto w-full relative overflow-hidden">
       <div class="w-[95%] mx-auto grid grid-cols-3 py-4">
-        <div class="col-span-2 w-full relative overflow-hidden flex flex-col gap-6">
+        <div class="col-span-2 w-full relative overflow-hidden flex flex-col gap-6 ">
           <h1 class="text-4xl font-semibold ">
             Client side storage
           </h1>
