@@ -6,7 +6,7 @@ const filename = ref<string>("image-converted.webp")
 const downloadUrl = ref<string | null>(null)
 
 // utils 
-import { loadImage } from '~/utils/loadImage';
+import { loadImage } from '~/utils/ImageUtils/loadImage';
 import { validateMessage } from '~/utils/validateMessage';
 
 function convertJpegToWebp(canvas: HTMLCanvasElement): Promise<Blob> {
