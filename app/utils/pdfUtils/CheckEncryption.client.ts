@@ -1,6 +1,8 @@
-import { getDocument } from "pdfjs-dist";
-import * as pdflibjs from "pdfjs-dist"
+const pdflibjs = await import("pdfjs-dist")
 export const IsPdfFileEncrypted = async(file : File) =>{
+    if(import.meta.server){
+        return false
+    }
     let pdfFile =  await file.arrayBuffer()
     if(!pdfFile) return; 
     try{

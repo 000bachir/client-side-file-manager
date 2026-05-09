@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { GetExtension } from '~/utils/ImageUtils/GetExtension';
-import { IsValidPdfFile } from '~/utils/pdfUtils/IspdfFile';
-import {
-    getDocument , GlobalWorkerOptions
-} from "pdfjs-dist"
+import { IsValidPdfFile } from '~/utils/pdfUtils/IspdfFile.client';
+import { CanHandlePdf } from '~/utils/hardwareUtils/HardwareCapacity';
 
-import workerSrc from "pdfjs-dist"
+import {
+    getDocument, GlobalWorkerOptions
+} from "pdfjs-dist/legacy/build/pdf.mjs"
+import * as pdfLibJs from "pdfjs-dist/legacy/build/pdf.mjs"
 
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -14,9 +15,76 @@ const downloadUrl = ref<string | null>(null)
 const isLoading = ref<boolean>(false)
 
 
+async function analyzePdfTextContent(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await pdfLibJs.getDocument({
+        data: arrayBuffer
+    }).promise
 
-function onFileSelect() {
-    console.log("hello world")
+    const pageToSample = Math.min(15, pdfDoc.numPages)
+    const results = [];
+    for (let i = 1; i <= pageToSample; i++) {
+
+        const page = await pdfDoc.getPage(i)
+
+        const textContent = await page.getTextContent();
+
+        let text = textContent.items.map(item => item.str || "").join("").trim();
+        
+        let HasImage : boolean = false
+        try {
+            const ops = await page.getOperatorList()
+            HasImage = ops.fnArray.some(fn =>
+                fn === pdfLibJs.OPS.paintImageXObject || 
+                fn === pdfLibJs.OPS.paintInlineImageXObject
+            )
+        }catch(error){
+            console.error(`Operator parsing failed on page ${i}\n`)
+        }
+
+        results.push({
+            page: i,
+            charCount: text.length,
+            HasImage,
+            likelyScanned: HasImage && text.length < 10
+        })
+    }
+    const scannedPages = results.filter(r => r.likelyScanned).length
+    console.log(`there are : ${scannedPages}`)
+    const ScannedRatio = scannedPages / results.length
+    console.log(`the ratio of scanned pages is ${ScannedRatio}`)
+
+
+    return {
+        needsOcr : ScannedRatio > 0.5,
+        isMixed : ScannedRatio > 0 && ScannedRatio < 0.5,
+        isAlreadyOcrd : results.some(r => r.HasImage && r.charCount > 10),
+        ScannedRatio,
+        details : results
+    }
+
+}
+
+
+
+
+async function onFileSelect() {
+    const filesUploaded = fileInput.value?.files; 
+    if(!filesUploaded){
+        validateMessage("No files have been uploaded\n")
+        return;
+    }
+
+    let file = filesUploaded[0]
+    if(!file)return;
+
+    const validFile = await IsValidPdfFile(file)
+    if(!validFile.valid){
+        alert(validFile.message)
+    }else{
+        alert(validFile.message)
+    }
+
 }
 </script>
 
