@@ -1,0 +1,7 @@
+steps to follow : 
+1- validate the file : done 
+2- check if the file is encrypted : done 
+3 - check if the users brower can handle that pdf  : done 
+4 - check the size of pdf and impose a limit : done 
+5 - check if an ocr is needed or not : done 
+    

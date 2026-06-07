@@ -9,7 +9,7 @@ type PdfValidationResult = {
 }
 
 
-export async function IsValidPdfFile(file: File): Promise<PdfValidationResult> {
+export async function IsValidPdfFile(file: File) {
 
     if (import.meta.server) {
         return {
@@ -41,22 +41,4 @@ export async function IsValidPdfFile(file: File): Promise<PdfValidationResult> {
             message: "invalid file type , does not match .pdf format"
         }
     };
-    try {
-        const pdfDoc = await PDFDocument.load(buffer)
-        let countPage = pdfDoc.getPageCount()
-        if (countPage > 150) {
-            return {
-                valid: false,
-                code: "TOO_LARGE",
-                message: "PDF exceeds 150 pages"
-            }
-        }
-        return {
-            valid: true,
-            code: "GOOD TO GO",
-            message: "File can be accepted"
-        }
-    } catch (error) {
-        throw new Error(`the function could not treat this file successfully check erorr ${error} and the error message `)
-    }
 };

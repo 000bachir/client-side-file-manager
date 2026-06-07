@@ -7,7 +7,9 @@ import {
     getDocument, GlobalWorkerOptions
 } from "pdfjs-dist/legacy/build/pdf.mjs"
 import * as pdfLibJs from "pdfjs-dist/legacy/build/pdf.mjs"
-
+import { CheckBrowserCapacity, CheckDevice } from '~/utils/pdfUtils/CheckBrowser';
+import { CheckPdfFileSize } from '~/utils/pdfUtils/CheckfileSize';
+import { IsPdfFileEncrypted } from '~/utils/pdfUtils/CheckEncryption.client';
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const filename = ref<string>("");
@@ -16,29 +18,42 @@ const isLoading = ref<boolean>(false)
 
 
 async function analyzePdfTextContent(file: File) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await pdfLibJs.getDocument({
-        data: arrayBuffer
-    }).promise
 
+    // Load the PDF into pdf.js from raw bytes
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await pdfLibJs.getDocument({ data: arrayBuffer }).promise
+
+    // Cap sampling at 15 pages — no need to scan a 500-page doc fully,
+    // the first 15 pages give a reliable enough signal
     const pageToSample = Math.min(15, pdfDoc.numPages)
     const results = [];
-    for (let i = 1; i <= pageToSample; i++) {
 
+    for (let i = 1; i <= pageToSample; i++) {
         const page = await pdfDoc.getPage(i)
 
+        // --- TEXT EXTRACTION ---
+        // pdf.js returns text as a list of "items" (text spans/runs).
+        // We join them all into one string and trim whitespace.
+        // If this string is empty or very short → no real text on this page.
         const textContent = await page.getTextContent();
-
+        //@ts-ignore
         let text = textContent.items.map(item => item.str || "").join("").trim();
-        
-        let HasImage : boolean = false
+
+        // --- IMAGE DETECTION ---
+        // pdf.js can give us the raw drawing "operator list" — a low-level list of
+        // every render command on the page (draw line, fill rect, paint image, etc.).
+        // We scan that list for image-painting operators specifically:
+        //   - paintImageXObject     → a normal referenced image (most common)
+        //   - paintInlineImageXObject → an image embedded inline in the content stream
+        let HasImage: boolean = false
         try {
             const ops = await page.getOperatorList()
             HasImage = ops.fnArray.some(fn =>
-                fn === pdfLibJs.OPS.paintImageXObject || 
+                fn === pdfLibJs.OPS.paintImageXObject ||
                 fn === pdfLibJs.OPS.paintInlineImageXObject
             )
-        }catch(error){
+        } catch (error) {
+            // Some pages have malformed or unparseable operator streams — skip gracefully
             console.error(`Operator parsing failed on page ${i}\n`)
         }
 
@@ -46,45 +61,72 @@ async function analyzePdfTextContent(file: File) {
             page: i,
             charCount: text.length,
             HasImage,
+            // Key heuristic: image present + fewer than 10 characters of real text
+            // = this page is almost certainly a scan with no embedded text
             likelyScanned: HasImage && text.length < 10
         })
     }
+
+    // --- FINAL VERDICT ---
+
+    // Count how many sampled pages were flagged as scanned
     const scannedPages = results.filter(r => r.likelyScanned).length
     console.log(`there are : ${scannedPages}`)
+
+    // Ratio: 0.0 = fully digital, 1.0 = fully scanned
     const ScannedRatio = scannedPages / results.length
     console.log(`the ratio of scanned pages is ${ScannedRatio}`)
 
-
     return {
-        needsOcr : ScannedRatio > 0.5,
-        isMixed : ScannedRatio > 0 && ScannedRatio < 0.5,
-        isAlreadyOcrd : results.some(r => r.HasImage && r.charCount > 10),
-        ScannedRatio,
-        details : results
-    }
+        // More than half the pages are scanned → OCR is needed
+        needsOcr: ScannedRatio > 0.5,
 
+        // Some pages are scanned, some are digital → mixed document
+        // (e.g. a report with scanned appendices)
+        isMixed: ScannedRatio > 0 && ScannedRatio < 0.5,
+
+        // At least one page has BOTH an image AND real text → OCR was already applied
+        // previously and the text layer was embedded on top of the scan
+        isAlreadyOcrd: results.some(r => r.HasImage && r.charCount > 10),
+
+        ScannedRatio,
+
+        // Full per-page breakdown, useful for debugging or showing a detailed report
+        details: results
+    }
 }
 
-
-
-
 async function onFileSelect() {
-    const filesUploaded = fileInput.value?.files; 
-    if(!filesUploaded){
+    const filesUploaded = fileInput.value?.files;
+    if (!filesUploaded) {
         validateMessage("No files have been uploaded\n")
         return;
     }
-
     let file = filesUploaded[0]
-    if(!file)return;
-
-    const validFile = await IsValidPdfFile(file)
-    if(!validFile.valid){
-        alert(validFile.message)
-    }else{
-        alert(validFile.message)
+    if (!file) return;
+    // check if the user is using a mobile : 
+    let UserDevice = CheckDevice()
+    if(UserDevice ===)
+    
+    // check if the file is a valid pdf file 
+    let result = await IsValidPdfFile(file)
+    console.log("[IsValidPdfFile] results : ", result)
+    if (!result || !result.valid) {
+        console.warn("rejected : ", result?.code, result?.message)
+    }
+    // check file size : 
+    let fileSize = await CheckPdfFileSize(file)
+    console.log("FileSize result: ", fileSize.code)
+    if (!fileSize || !fileSize.valid) {
+        console.warn("Rejected : ", fileSize.code, fileSize.message)
+    }
+    // check if encrypted 
+    let encryptCheck = await IsPdfFileEncrypted(file)
+    if (!encryptCheck) {
+        return
     }
 
+     
 }
 </script>
 
