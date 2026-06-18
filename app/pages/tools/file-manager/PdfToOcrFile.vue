@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import { GetExtension } from '~/utils/ImageUtils/GetExtension';
 import { IsValidPdfFile } from '~/utils/pdfUtils/IspdfFile.client';
-import { CanHandlePdf } from '~/utils/hardwareUtils/HardwareCapacity';
-
-import {
-    getDocument, GlobalWorkerOptions
-} from "pdfjs-dist/legacy/build/pdf.mjs"
 import * as pdfLibJs from "pdfjs-dist/legacy/build/pdf.mjs"
 import { CheckBrowserCapacity, CheckDevice } from '~/utils/pdfUtils/CheckBrowser';
 import { CheckPdfFileSize } from '~/utils/pdfUtils/CheckfileSize';
 import { IsPdfFileEncrypted } from '~/utils/pdfUtils/CheckEncryption.client';
-
+import { runOcrOnPdf, type OcrPageProgress } from '~/utils/pdfUtils/RunOcrOnPdf';
 const fileInput = ref<HTMLInputElement | null>(null);
 const filename = ref<string>("");
 const downloadUrl = ref<string | null>(null)
 const isLoading = ref<boolean>(false)
 
+// User-facing status, surfaced in the template below the upload form.
+const statusMessage = ref<string>("");
+const ocrProgress = ref<OcrPageProgress | null>(null);
+
+function setStatus(message: string) {
+    statusMessage.value = message;
+    console.log(message);
+}
 
 async function analyzePdfTextContent(file: File) {
 
     // Load the PDF into pdf.js from raw bytes
     const arrayBuffer = await file.arrayBuffer();
+    pdfLibJs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.mjs" , import.meta.url).toString()
     const pdfDoc = await pdfLibJs.getDocument({ data: arrayBuffer }).promise
 
     // Cap sampling at 15 pages — no need to scan a 500-page doc fully,
@@ -96,37 +99,105 @@ async function analyzePdfTextContent(file: File) {
     }
 }
 
+function resetState() {
+    statusMessage.value = "";
+    ocrProgress.value = null;
+    if (downloadUrl.value) {
+        URL.revokeObjectURL(downloadUrl.value);
+    }
+    downloadUrl.value = null;
+}
+
 async function onFileSelect() {
+    resetState();
+
     const filesUploaded = fileInput.value?.files;
     if (!filesUploaded) {
-        validateMessage("No files have been uploaded\n")
+        setStatus("No files have been uploaded");
         return;
     }
-    let file = filesUploaded[0]
+    const file = filesUploaded[0];
     if (!file) return;
-    // check if the user is using a mobile : 
-    let UserDevice = CheckDevice()
-    if(UserDevice ===)
-    
-    // check if the file is a valid pdf file 
-    let result = await IsValidPdfFile(file)
-    console.log("[IsValidPdfFile] results : ", result)
-    if (!result || !result.valid) {
-        console.warn("rejected : ", result?.code, result?.message)
-    }
-    // check file size : 
-    let fileSize = await CheckPdfFileSize(file)
-    console.log("FileSize result: ", fileSize.code)
-    if (!fileSize || !fileSize.valid) {
-        console.warn("Rejected : ", fileSize.code, fileSize.message)
-    }
-    // check if encrypted 
-    let encryptCheck = await IsPdfFileEncrypted(file)
-    if (!encryptCheck) {
-        return
-    }
 
-     
+    isLoading.value = true;
+
+    try {
+        // --- VALIDATION CHAIN: each check stops the whole flow on failure ---
+
+        const validity = await IsValidPdfFile(file);
+        if (!validity || !validity.valid) {
+            setStatus(validity?.message ?? "This file isn't a valid PDF.");
+            return;
+        }
+
+        const fileSize = await CheckPdfFileSize(file);
+        if (!fileSize || !fileSize.valid) {
+            setStatus(fileSize?.message ?? "This file is too large to process.");
+            return;
+        }
+
+        const isEncrypted = await IsPdfFileEncrypted(file);
+        if (isEncrypted) {
+            setStatus("This PDF is encrypted/password-protected and can't be processed.");
+            return;
+        }
+
+        // Mobile devices are explicitly unsupported for this operation — block here.
+        const isMobileDevice = await CheckDevice();
+        if (isMobileDevice) {
+            setStatus("This operation isn't supported on mobile. Please switch to a laptop or desktop.");
+            return;
+        }
+
+        // CheckBrowserCapacity throws on failure rather than returning false,
+        // so a thrown error here is caught by the outer try/catch below.
+        await CheckBrowserCapacity();
+
+        // --- OCR NEED DETECTION ---
+
+        setStatus("Analyzing PDF content…");
+        const analysis = await analyzePdfTextContent(file);
+
+        if (!analysis.needsOcr && !analysis.isMixed) {
+            // Fully digital document — already searchable, nothing to do.
+            setStatus("This PDF is already searchable. No OCR needed.");
+            const url = URL.createObjectURL(file);
+            downloadUrl.value = url;
+            filename.value = file.name;
+            return;
+        }
+
+        if (analysis.isAlreadyOcrd) {
+            setStatus("This PDF already appears to have an OCR text layer applied.");
+            const url = URL.createObjectURL(file);
+            downloadUrl.value = url;
+            filename.value = file.name;
+            return;
+        }
+
+        // --- RUN OCR (needsOcr or isMixed: at least some pages are scanned) ---
+
+        setStatus("This PDF needs OCR to become searchable. Processing…");
+
+        const ocrBlob = await runOcrOnPdf(file, (progress) => {
+            ocrProgress.value = progress;
+            setStatus(
+                `OCR: page ${progress.page}/${progress.totalPages} (${progress.status})`
+            );
+        });
+
+        const url = URL.createObjectURL(ocrBlob);
+        downloadUrl.value = url;
+        filename.value = file.name.replace(/\.pdf$/i, "") + "-searchable.pdf";
+        setStatus("Done — your searchable PDF is ready to download.");
+
+    } catch (error) {
+        console.error(error);
+        setStatus(error instanceof Error ? error.message : "Something went wrong while processing this PDF.");
+    } finally {
+        isLoading.value = false;
+        ocrProgress.value = null;
+    }
 }
 </script>
 
@@ -150,6 +221,14 @@ async function onFileSelect() {
                                     accept="application/pdf"
                                     class="w-full mx-auto p-6  border border-white text-heading text-xl rounded-2xl shadow-2xl focus:ring-brand focus:border-brand  placeholder:text-body hover:bg-green-600">
                             </div>
+
+                            <div v-if="statusMessage" class="w-[95%] mx-auto text-center text-body">
+                                <p>{{ statusMessage }}</p>
+                                <p v-if="ocrProgress" class="text-sm opacity-75">
+                                    Page {{ ocrProgress.page }} / {{ ocrProgress.totalPages }}
+                                </p>
+                            </div>
+
                             <div class=" py-4 w-full flex items-center justify-center">
                                 <UButton :href="downloadUrl || undefined" tag="a" :loading="isLoading"
                                     :disabled="!downloadUrl || isLoading" :download="filename" variant="outline"

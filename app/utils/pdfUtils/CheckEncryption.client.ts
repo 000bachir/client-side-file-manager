@@ -18,10 +18,10 @@ export async function IsPdfFileEncrypted(file : File) : Promise<any>{
                 resolve(reason === pdflibjs.PasswordResponses.NEED_PASSWORD)
             }
             loadingTask.promise.then(()=>{
-                resolve(true)
+                resolve(false)
                 alert("file is not encrypted\n")
             }).catch(()=>{
-                resolve(false)
+                resolve(true)
                 alert("file is encrypted\n")
             })
         })
