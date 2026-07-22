@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-
+    
 
 </script>
 
@@ -23,6 +23,11 @@
             <NuxtLink to="/tools/file-manager/PdfToOcrFile">
                 <UButton color="success" size="xl" class="font-semibold text-2xl">
                     OCR pdfs
+                </UButton>
+            </NuxtLink>
+            <NuxtLink to="/tools/file-manager/compressPdf">
+                <UButton color="success" size="xl" class="font-semibold text-2xl">
+                    Compress pdf
                 </UButton>
             </NuxtLink>
 

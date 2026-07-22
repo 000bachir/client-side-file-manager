@@ -54,8 +54,8 @@ async function onFileUpload() {
         downloadUrl.value = URL.createObjectURL(webpBlob)
         filename.value = file.name.replace(/\.jpeg$/i, ".webp")
     } catch (error) {
-        console.error("error the file upload did not proceede correctly\n")
-        validateMessage("conversion failed")
+        console.error(`ERROR : ${error}\n`)
+        validateMessage("Conversion failed")
     }
 }
 </script>

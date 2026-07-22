@@ -67,7 +67,7 @@ export async function runOcrOnPdf(
 
             onProgress?.({ page: i, totalPages, status: "recognizing" });
 
-            const { data } = await worker.recognize(imageDataUrl);
+            const { data } = await worker.recognize(imageDataUrl , {} , {blocks : true});
 
             onProgress?.({ page: i, totalPages, status: "embedding" });
 

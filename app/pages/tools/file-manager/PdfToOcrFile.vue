@@ -1,3 +1,5 @@
+// need to fix the ui as well 
+
 <script setup lang="ts">
 import { IsValidPdfFile } from '~/utils/pdfUtils/IspdfFile.client';
 import * as pdfLibJs from "pdfjs-dist/legacy/build/pdf.mjs"
@@ -242,7 +244,6 @@ async function onFileSelect() {
                 </article>
                 <div class="col-span-1 h-full w-full relative overflow-hidden flex items-center justify-center flex-col gap-6 bg-amber-300"
                     id="prompt_side_operations">
-
                 </div>
             </section>
         </main>
