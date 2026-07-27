@@ -1,4 +1,17 @@
+<!--TODO:  RE STYLING THE PART WHERE THERE ALL THE BUTTONS THAT LEADS TO DIFFERENT FUNCTIONALITY-->
+
+
+
 <script setup lang="ts">
+
+import { ref , onMounted } from 'vue';
+
+
+const cards = ref(null)
+const card = ref(null)
+
+onMounted(()=>{
+})
 
 interface ImageOperations {
     id: string | any
@@ -44,4 +57,69 @@ function formatLabel(id: string) {
         </div>
     </section> -->
 
+    <section class="h-auto w-full relative overflow-hidden flex items-center justify-center m-0 p-0">
+        <div ref="cards" id="cards" class="flex flex-wrap gap-2 max-w-[916px] w-[calc(100% - 20px)]">
+            <div ref="card" class="card cursor-pointer flex h-[260px] flex-col relative w-[300px]">
+
+                <div class="card-content">
+                    <div class="card-image">
+                        <i class="fa-duotone fa-apartment"></i>
+                    </div>
+                    <div class="card-info-wrapper">
+                        <div class="card-info">
+                            <i class="fa-duotone fa-apartment"></i>
+                            <div class="card-info-title">
+                                <h3>Apartments</h3>
+                                <h4>Places to be apart. Wait, what?</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
 </template>
+
+
+<style>
+#cards:hover>.card::after {
+    opacity: 1;
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.card:hover::before {
+    opacity: 1;
+}
+
+.card::before,
+.card::after {
+    border-radius: inherit;
+    content: "";
+    height: 100%;
+    top: 0;
+    left: 0;
+    position: absolute;
+    transition: opacity 500ms;
+    width: 100%;
+}
+
+.card::before {
+    background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y),
+            rgba(255, 255, 255, 0.06),
+            transparent 40%);
+    z-index: 3;
+}
+
+.card::after {
+    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
+            rgba(255, 255, 255, 0.4),
+            transparent 40%);
+    z-index: 1;
+}
+</style>
