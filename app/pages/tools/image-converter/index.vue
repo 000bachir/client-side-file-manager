@@ -55,111 +55,75 @@ interface ImageOperations {
 }
 
 
-const selectedOperation = ref<string | null>(null);
+
+/*
+jpeg → png ----> done
+png → jpeg ----> done
+png → webp ----> done
+jpeg → webp ----> done
+webp → png
+webp → jpeg
+webp → avif
+jpeg → avif
+png → avif
+
+*/
+type ImageOperationId =
+    | 'jpeg-png'
+    | 'png-jpeg'
+    | 'png-webp'
+    | 'jpeg-webp'
+    | 'webp-png'
+    | 'webp-jpeg'
+    | 'webp-avif'
+    | 'jpeg-avif'
+    | 'png-avif';
+
 interface ImageOperation {
-    id: 'jpeg-png' | 'png-jpeg' | 'png-webp' | 'jpeg-webp'
+    id: ImageOperationId;
+    label: string;
 }
 
 const imageOperations: ImageOperation[] = [
-    { id: 'jpeg-png' },
-    { id: 'png-jpeg' },
-    { id: 'png-webp' },
-    { id: 'jpeg-webp' }
-]
+    { id: 'jpeg-png', label: 'JPEG to PNG' },
+    { id: 'png-jpeg', label: 'PNG to JPEG' },
+    { id: 'png-webp', label: 'PNG to WebP' },
+    { id: 'jpeg-webp', label: 'JPEG to WebP' },
+    { id: 'webp-png', label: 'WebP to PNG' },
+    { id: 'webp-jpeg', label: 'WebP to JPEG' },
+    { id: 'webp-avif', label: 'WebP to AVIF' },
+    { id: 'jpeg-avif', label: 'JPEG to AVIF' },
+    { id: 'png-avif', label: 'PNG to AVIF' },
+];
 
-function formatLabel(id: string) {
-    const [from, to] = id.split('-')
-    if (from && to) {
-        return `${from.toUpperCase()} → ${to.toUpperCase()}`
-    }
-}
+
 
 
 </script>
 
 <template>
-    <!-- <section class="h-dvh w-full relative overflow-hidden flex items-center justify-center">
-        <div id="button-container"
-            class="h[90%] w-[90%] mx-auto relative flex items-center justify-center gap-4 flex-wrap">
-            <NuxtLink v-for="operation in imageOperations" :key="operation.id"
-                :to="`image-converter/${operation.id}`">
-                <UButton color="success" size="xl">
-                    {{ formatLabel(operation.id) }}
-                </UButton>
-            </NuxtLink>
-
-             child operation renders here 
-            <NuxtPage />
-        </div>
-    </section> -->
-
-
     <main class="h-auto w-[95%] mx-auto relative overflow-hidden">
         <!-- parent tag holding everything -->
-        <section class="h-auto w-full relative flex flex-wrap justify-center gap-2.5 bg-red-50 py-4 px-12">
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 grid grid-rows-3 ">
-                <div id="logo" class="row-span-1 w-full relative overflow-hidden flex items-center justify-center px-2">
-                    <JpegIcon height="5rem" width="5rem" color="#000"/>
+        <section class="h-auto w-full relative flex flex-wrap justify-center gap-2.5  py-4 px-12">
+            <NuxtLink v-for="operations in imageOperations" :key="operations.id"
+                :to="`image-converter/${operations.id}`">
+                <div
+                    class="container h-80 w-96  border border-gray-500 rounded-2xl  grid grid-rows-2 overflow-hidden    ">
+                    <div id="logo"
+                        class="row-span-1 w-full relative overflow-hidden flex items-center justify-center px-2">
+                        <JpegIcon height="5rem" width="5rem" color="#000" />
+                    </div>
+                    <div class="row-span-1 w-full relative overflow-hidden flex items-center justify-center ">
+                        <h1 class="text-3xl font-bold text-red-50">
+                            {{ operations.label }}
+                        </h1>
+
+                    </div>
                 </div>
-                <div class=""></div>
-
-            </div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-            <div class="container h-80 w-96  border border-gray-500 rounded-2xl bg-amber-200 "></div>
-
-
-
+            </NuxtLink>
         </section>
     </main>
-
-
-
 </template>
 
 
-<style>
-#cards:hover>.card::after {
-    opacity: 1;
-}
-
-.card {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-.card:hover::before {
-    opacity: 1;
-}
-
-.card::before,
-.card::after {
-    border-radius: inherit;
-    content: "";
-    height: 100%;
-    top: 0;
-    left: 0;
-    position: absolute;
-    transition: opacity 500ms;
-    width: 100%;
-}
-
-.card::before {
-    background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y),
-            rgba(255, 255, 255, 0.06),
-            transparent 40%);
-    z-index: 3;
-}
-
-.card::after {
-    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
-            rgba(255, 255, 255, 0.4),
-            transparent 40%);
-    z-index: 1;
-}
-</style>
+<style></style>
