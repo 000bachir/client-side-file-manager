@@ -1,6 +1,6 @@
 <!--TODO:  RE STYLING THE PART WHERE THERE ALL THE BUTTONS THAT LEADS TO DIFFERENT FUNCTIONALITY-->
-
-/*
+<script setup lang="ts">
+/**  
 jpeg → png ----> done
 png → jpeg ----> done
 png → webp ----> done
@@ -11,8 +11,6 @@ webp → avif
 jpeg → avif
 png → avif
 */
-
-<script setup lang="ts">
 
 import { ref, onMounted } from 'vue';
 import JpegIcon from "@/assets/icons/ImageIcons/JpegIcon.vue"
@@ -41,7 +39,6 @@ interface ImageOperation {
     label: string;
     description: string
 }
-
 const PngimageOperations: ImageOperation[] = [
     {
         id: 'png-jpeg',
@@ -58,12 +55,6 @@ const PngimageOperations: ImageOperation[] = [
         label: 'PNG to AVIF',
         description: 'Convert PNG images to AVIF for modern, highly compressed image files.'
     },
-
-    // { id: 'jpeg-png', label: 'JPEG to PNG' },
-    // { id: 'jpeg-webp', label: 'JPEG to WebP' },
-    // { id: 'jpeg-avif', label: 'JPEG to AVIF' },
-
-
 ];
 
 const JpegImageOperations: ImageOperation[] = [
@@ -85,8 +76,7 @@ const JpegImageOperations: ImageOperation[] = [
         description: 'Create highly compressed images with excellent quality for modern websites.'
     },
 
-]
-
+];
 const WebpImageOperations: ImageOperation[] = [
     {
         id: 'webp-png',
@@ -105,10 +95,7 @@ const WebpImageOperations: ImageOperation[] = [
         label: 'WebP to AVIF',
         description: 'Convert WebP images to AVIF for smaller files and excellent image quality.'
     },
-
-
 ]
-
 
 </script>
 
@@ -214,6 +201,7 @@ const WebpImageOperations: ImageOperation[] = [
             </article>
         </section>
     </main>
+
 </template>
 
 

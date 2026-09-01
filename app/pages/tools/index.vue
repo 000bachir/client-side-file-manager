@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import Drawer from '~/components/ui/Drawer.vue'; 
-
+import { DnDProvider } from '@vue-dnd-kit/core';
+import Drawer from '~/components/ui/Drawer.vue';
 
 </script>
 
 
 <template>
-    <Drawer />
-    <NuxtPage /> <!-- child routes load here -->
+    <DnDProvider>
+        <Drawer />
+        <NuxtPage /> <!-- child routes load here -->
+    </DnDProvider>
+
 </template>
