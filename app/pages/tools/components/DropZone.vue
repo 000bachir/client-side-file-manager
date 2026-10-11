@@ -1,27 +1,58 @@
 <script setup lang="ts">
-import { ja } from '@nuxt/ui/runtime/locale/index.js';
+const MAX_SIZE = 25 * 1024 * 1024
+const fileInput = ref<HTMLInputElement | null>(null);
+const isDragging = ref(false);
+const errorMessage = ref("");
+const files = ref<File[]>([]) // empty array
 
-
-    const fileInput = ref<HTMLInputElement | null>(null);
-
-    function handleFileSelect(event : Event){
-        const input = event.target as HTMLInputElement;
-        if(!input.files) return
-
-        handleFiles(input.files)
-    }
-    function HandleDrop(event : DragEvent){
-        event.preventDefault();
-        if(!event.dataTransfer?.files)return
+function HandleFiles(list: FileList | File[]) {
+    errorMessage.value = "";
+    const incoming = Array.from(list);
+    const images = incoming.filter(f => f.type.startsWith("image/"))
+    if (images.length !== incoming.length) {
+        errorMessage.value = "Only image files are allowed"
     }
 
-    
+    const valid = images.filter(f => {
+        if (f.size > MAX_SIZE) {
+            errorMessage.value = `${MAX_SIZE}mb has been exceeded by ${f.name}`
+            return false;
+        }
+        return true;
+    })
+    files.value.push(...valid)
+
+}
+
+function OnfileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files) return
+    HandleFiles(input.files)
+    input.value = ""
+}
+
+function onDrop(event: DragEvent) {
+    isDragging.value = false;
+    if (!event.dataTransfer?.files.length) return
+    HandleFiles(event.dataTransfer?.files)
+}
+
+function onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.files
+    if (items?.length) {
+        HandleFiles(items)
+    }
+}
+
+
 </script>
 
 <template>
     <div class="content-layer">
-        <div  class="file-upload" id="dropZone">
-            <input ref="fileInput" multiple accept="image/*" class="file-input" id="fileInput" type="file" @change="OnfileDrop" />
+        <div class="file-upload" id="dropZone" :class="{ dragging: isDragging }" @dragenter.prevent="isDragging = true"
+            @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @drop.prevent="onDrop">
+            <input ref="fileInput" multiple accept="image/*" class="file-input" id="fileInput" type="file"
+                @change="OnfileSelect" />
             <label class="file-label" id="uploadState" for="fileInput">
                 <div class="upload-icon">
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="url(#gradientColor)"
@@ -43,8 +74,15 @@ import { ja } from '@nuxt/ui/runtime/locale/index.js';
                     <p class="limit-text-default">Max File Size: 25 MB &bull;</p>
                 </div>
                 <div class="info-text">Uploaded images are automatically deleted</div>
-                <div class="error-msg" id="errorMsg"></div>
+                <div class="error-msg" id="errorMsg">{{ errorMessage }}</div>
             </label>
+            <div v-if="files.length" class="upload-state">
+                <ul class="file-list">
+                    <li v-for="f in files" :key="f.name + f.size">{{ f.name }}</li>
+                </ul>
+                <button class="new-upload-btn" @click="fileInput?.click()">Upload New Images</button>
+                <button class="cancel-btn" @click="files = []">Cancel All</button>
+            </div>
             <div class="upload-state" id="progressState">
                 <div class="file-list" id="fileList"></div>
                 <button class="new-upload-btn" id="newUploadBtn">Upload New Images</button>
@@ -160,7 +198,7 @@ import { ja } from '@nuxt/ui/runtime/locale/index.js';
     width: 100%;
     margin-top: 15px;
     display: flex;
-    justify-content: center;    
+    justify-content: center;
 }
 
 /* upload state and list */

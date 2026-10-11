@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { validateMessage } from '~/utils/validateMessage';
+import DropZone from '../components/DropZone.vue';
 /**
  * !state
  */
@@ -102,7 +103,7 @@ async function onFileUpload() {
 
 </script>
 
-<template>
+<!--<template>
   <main class="h-auto w-full relative overflow-hidden">
     <section class="h-dvh w-full relative overflow-hidden grid grid-cols-2">
       <div id="input_col" class="h-full w-full relative overflow-hidden ">
@@ -110,7 +111,7 @@ async function onFileUpload() {
           <input ref="inputElement" type="file" accept="image/*"
             class="border border-amber-50 p-8 rounded-3xl shadow-2xl" @change="onFileUpload">
           <canvas class="hidden" ref="canvas"></canvas>
-          <!-- <a id="downloadLink" ref="downloadLink" class="hidden text-amber-300">Download JPEG</a> -->
+          <a id="downloadLink" ref="downloadLink" class="hidden text-amber-300">Download JPEG</a> 
           <UButton v-if="downloadUrl" :to="downloadUrl" :download="filename" variant="outline" color="success" size="xl"
             icon="i-lucide-rocket" class="flex items-center justify-center">
             Download JPEG
@@ -126,5 +127,27 @@ async function onFileUpload() {
 input[type="file"]::file-selector-button {
   content: none;
 }
+
+</style>-->
+
+
+
+<template>
+    <main class="h-dvh w-full relative overflow-hidden flex items-center justify-center ">
+        <DropZone />
+    </main>
+</template>
+
+
+<style>
+
+    .drop-zone{
+        height: 600px;
+        aspect-ratio: 1;
+        background: red;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
 </style>
