@@ -6,10 +6,12 @@ import { DnDProvider } from '@vue-dnd-kit/core'
 <template>
   <DnDProvider>
     <NuxtLayout>
-      <header class="h-24 w-full overflow-hidden border-b border-amber-50 shadow-2xl">
-        <Navbar />
-      </header>
-      <NuxtPage />
+      <UApp>
+        <header class="h-24 w-full overflow-hidden border-b border-amber-50 shadow-2xl">
+          <Navbar />
+        </header>
+        <NuxtPage />
+      </UApp>
     </NuxtLayout>
   </DnDProvider>
 </template>

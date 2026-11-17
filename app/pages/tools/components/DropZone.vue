@@ -1,27 +1,66 @@
 <script setup lang="ts">
-const MAX_SIZE = 25 * 1024 * 1024
+const MAX_SIZE = 25 * 1024 * 1024;
+
+// the emit will tell the parent page about the file instead of gate keeping 
+const emit = defineEmits<{
+    add : [files : File[]]
+    clear : []
+}>()
+
+
 const fileInput = ref<HTMLInputElement | null>(null);
-const isDragging = ref(false);
+let isDragging = ref(false);
 const errorMessage = ref("");
 const files = ref<File[]>([]) // empty array
 
 function HandleFiles(list: FileList | File[]) {
-    errorMessage.value = "";
-    const incoming = Array.from(list);
-    const images = incoming.filter(f => f.type.startsWith("image/"))
-    if (images.length !== incoming.length) {
-        errorMessage.value = "Only image files are allowed"
-    }
+    const errors : string[] = [];
+    const valid : File[] = [];
 
-    const valid = images.filter(f => {
-        if (f.size > MAX_SIZE) {
-            errorMessage.value = `${MAX_SIZE}mb has been exceeded by ${f.name}`
-            return false;
+    for(const file of Array.from(list)){
+        if(!file.type.startsWith("image/")){
+            errors.push(`${file.name} exceeds the 25mb limit`)
+        }else if (files.value.some(
+            x => x.name === file.name && x.size === file.size && x.lastModified === file.lastModified 
+        )){
+            continue
+        }else {
+            valid.push(file)
         }
-        return true;
-    })
-    files.value.push(...valid)
+    }
+    
+    errorMessage.value = errors.join(", ")
+    if(valid.length){
+        files.value.push(...valid)
+        emit("add" , valid) // handing the new file to the parent page to perfom any change
+    }
+}
 
+function onDrop(event: DragEvent) {
+    isDragging.value = false;
+    const dropped = event.dataTransfer?.files;
+    if(!dropped?.length)return;
+    HandleFiles(dropped)
+}
+
+function onDragLeave(event : DragEvent){
+    const zone = event.currentTarget as HTMLElement;
+    if(!zone.contains(event.relatedTarget as Node | null)){
+        isDragging.value = false;
+    }
+}
+
+function onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.files
+    if (items?.length) {
+        HandleFiles(items)
+    }
+};
+
+function ClearAll(){
+    files.value = [] ; 
+    errorMessage.value = "" ; 
+    emit("clear")
 }
 
 function OnfileSelect(event: Event) {
@@ -30,27 +69,13 @@ function OnfileSelect(event: Event) {
     HandleFiles(input.files)
     input.value = ""
 }
-
-function onDrop(event: DragEvent) {
-    isDragging.value = false;
-    if (!event.dataTransfer?.files.length) return
-    HandleFiles(event.dataTransfer?.files)
-}
-
-function onPaste(event: ClipboardEvent) {
-    const items = event.clipboardData?.files
-    if (items?.length) {
-        HandleFiles(items)
-    }
-}
-
-
 </script>
 
 <template>
     <div class="content-layer">
+        <!-- FIX: @dragleave now uses onDragLeave -->
         <div class="file-upload" id="dropZone" :class="{ dragging: isDragging }" @dragenter.prevent="isDragging = true"
-            @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @drop.prevent="onDrop">
+            @dragover.prevent="isDragging = true" @dragleave="onDragLeave" @drop.prevent="onDrop">
             <input ref="fileInput" multiple accept="image/*" class="file-input" id="fileInput" type="file"
                 @change="OnfileSelect" />
             <label class="file-label" id="uploadState" for="fileInput">
@@ -78,16 +103,15 @@ function onPaste(event: ClipboardEvent) {
             </label>
             <div v-if="files.length" class="upload-state">
                 <ul class="file-list">
-                    <li v-for="f in files" :key="f.name + f.size">{{ f.name }}</li>
+                    <!-- FIX: key by index so repeated names can't collide -->
+                    <li v-for="(f, i) in files" :key="i">{{ f.name }}</li>
                 </ul>
                 <button class="new-upload-btn" @click="fileInput?.click()">Upload New Images</button>
-                <button class="cancel-btn" @click="files = []">Cancel All</button>
+                <!-- FIX: uses clearAll instead of files = [] -->
+                <button class="cancel-btn" @click="ClearAll">Cancel All</button>
             </div>
-            <div class="upload-state" id="progressState">
-                <div class="file-list" id="fileList"></div>
-                <button class="new-upload-btn" id="newUploadBtn">Upload New Images</button>
-                <button class="cancel-btn" id="cancelBtn">Cancel All</button>
-            </div>
+            <!-- FIX: removed the static #progressState block. It always rendered,
+                 had duplicate buttons, and nothing was connected to it. -->
         </div>
     </div>
 </template>

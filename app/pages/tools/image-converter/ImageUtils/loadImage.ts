@@ -1,4 +1,4 @@
-export function loadImage(file: File): Promise<HTMLImageElement> {
+export function LoadImage(file: File): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         let image = new Image();
         let objectUrl = URL.createObjectURL(file)
@@ -13,6 +13,5 @@ export function loadImage(file: File): Promise<HTMLImageElement> {
             reject(new Error("Failed to load image. The file might be corrupt."));
         }
         image.src = objectUrl
-
     })
 }

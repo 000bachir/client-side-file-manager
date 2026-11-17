@@ -6,9 +6,8 @@ const filename = ref<string>("image-converted.webp")
 const downloadUrl = ref<string | null>(null)
 
 // utils 
-import { loadImage } from '~/utils/ImageUtils/loadImage';
 import { validateMessage } from '~/utils/validateMessage';
-
+import { LoadImage } from '~/pages/tools/image-converter/ImageUtils/loadImage';
 function convertJpegToWebp(canvas: HTMLCanvasElement): Promise<Blob> {
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => {
@@ -34,7 +33,7 @@ async function onFileUpload() {
     }
 
     try {
-        let image = await loadImage(file)
+        let image = await LoadImage(file)
         let Canvas = canvas.value
         if (!Canvas) return
 
